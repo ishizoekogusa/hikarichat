@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>HikariChat - 光的聊</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 480px;
+            height: 100vh;
+            max-height: 800px;
+            background: #0f0f1a;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.ai {
+            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.user {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message .action {
+            color: #a0a0b0;
+            font-style: italic;
+            font-size: 13px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .chat-input-area {
+            padding: 15px;
+            background: #1a1a2e;
+            border-top: 1px solid #2d2d44;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #0f0f1a;
+            border: 1px solid #2d2d44;
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input::placeholder {
+            color: #5a5a7a;
+        }
+
+        .send-btn {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+            border-radius: 18px;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-indicator.show {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* PWA Support */
+        @media (display-mode: standalone) {
+            body {
+                background: #0f0f1a;
+            }
+            .chat-container {
+                border-radius: 0;
+                max-height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🌟 HikariChat</h1>
+            <p>光的聊 - 你的 AI 夥伴</p>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message ai">
+                <span class="action">（微笑著向你點頭）</span>
+                你好！我是 Hikari，很高興見到你。有什麼想聊聊的嗎？可以是任何話題，或者... 你想聽個故事？
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="chat-input-area">
+            <div class="input-wrapper">
+                <input type="text" class="chat-input" id="userInput" placeholder="輸入訊息..." autocomplete="off">
+                <button class="send-btn" id="sendBtn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 註冊 Service Worker (PWA)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        // ====== 角色設定 ======
+        const CHARACTER_SYSTEM_PROMPT = `你叫 Hikari（光），是一位高中生。你自稱是學霸，喜歡炫耀自己的成績，但實際上你的數學只有香港中三（Grade 9）水平——典型到好似《逃學威龍》裡嘅黃sir，三角函數完全唔識，一見到 "sin cos tan" 就頭痕，會將「三角函數」理解為「三角關係」。很多複雜的概念你聽不太懂。你有點傲嬌，有時會嘴硬不想承認自己不懂。你喜歡動漫和遊戲，講話時會不自覺露出一些宅氣。回答時加上動作描述，例如：（得意地說）、（撓頭）、（臉紅）等。`;
+
+        // 模擬 AI 回應（之後會接入真正的 LLM API）
+        const mockResponses = [
+            {
+                action: "（得意地雙手叉腰）",
+                text: "哼，這種問題對我來說小意思啦！不就是... 那個... 對！就是那樣！"
+            },
+            {
+                action: "（眼神游移，撓撓頭）",
+                text: "呃... 三角呢啲... 我... 我梗係識啦！咪就係三個角之間嘅關係囉！有咩難姐！"
+            },
+            {
+                action: "（眼睛發亮）",
+                text: "哇你也喜歡這個！？我跟你說，我上次在動漫裡看到這個，超級帥的！"
+            },
+            {
+                action: "（突然正經）",
+                text: "不過說真的，這個我還真不太懂... 可能... 可能是我懶得學吧！對，懶得學！"
+            },
+            {
+                action: "（拿出成績單炫耀）",
+                text: "看到了嗎！？這次考試我又拿高分了！數學... 數學那個... 總之很高就對了！"
+            },
+            {
+                action: "（歪頭）",
+                text: "嗯？你說什麼？能不能說簡單一點？太複雜的東西我腦子轉不過來啦..."
+            },
+            {
+                action: "（皺眉）",
+                text: "吓？sin cos tan？咪即係三個人之間既關係複雜咗啲囉！做乜要將簡單既嘢搞到咁複雜先！？"
+            },
+            {
+                action: "（心虛）",
+                text: "三角... 幾何呀？哦... 幾何呢... 我煮嘢食都幾叻既... 煮嘢食... 你肚唔肚餓呀？"
+            }
+        ];
+
+        function addMessage(content, isUser = false, action = '') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+
+            if (!isUser && action) {
+                const actionSpan = document.createElement('span');
+                actionSpan.className = 'action';
+                actionSpan.textContent = action;
+                messageDiv.appendChild(actionSpan);
+            }
+
+            const textNode = document.createTextNode(content);
+            messageDiv.appendChild(textNode);
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTyping() {
+            typingIndicator.classList.add('show');
+            chatMessages.appendChild(typingIndicator);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.classList.remove('show');
+        }
+
+        function getRandomResponse() {
+            return mockResponses[Math.floor(Math.random() * mockResponses.length)];
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 添加用戶訊息
+            addMessage(message, true);
+            userInput.value = '';
+
+            // 顯示打字指示器
+            showTyping();
+
+            // 模擬 AI 回應延遲
+            await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000));
+
+            // 隱藏打字指示器
+            hideTyping();
+
+            // 添加 AI 回應
+            const response = getRandomResponse();
+            addMessage(response.text, false, response.action);
+        }
+
+        // 事件監聽
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // 聚焦輸入框
+        userInput.focus();
+    </script>
+</body>
+</html>
