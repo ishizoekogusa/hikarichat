@@ -1,0 +1,19 @@
+{
+  "name": "hikari-messenger-bot",
+  "version": "1.0.0",
+  "description": "Facebook Messenger bot backend for Hikari",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.20.0",
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
