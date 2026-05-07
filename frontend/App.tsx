@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, BookOpen, Loader2, AlertCircle, Image as ImageIcon, X, Trash2 } from 'lucide-react';
+import { Send, BookOpen, Loader2, AlertCircle, Image as ImageIcon, X, Trash2, Share2 } from 'lucide-react';
 import { Chat } from '@google/genai';
 import { createChatSession, editImage } from './services/gemini';
 import { Message } from './types';
@@ -30,6 +30,7 @@ const App: React.FC = () => {
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -74,7 +75,6 @@ const App: React.FC = () => {
   useEffect(() => {
     if (messages.length > 0 && !messages.some(msg => msg.isStreaming)) {
       // To prevent localStorage quota exceeded, we might want to strip large base64 images before saving
-      // For this example, we save everything, but in production you'd strip `imageUrl` if it's a data URI.
       const messagesToSave = messages.map(msg => {
         if (msg.imageUrl && msg.imageUrl.startsWith('data:image')) {
           return { ...msg, imageUrl: undefined, text: msg.text || '[圖片已省略]' };
@@ -228,7 +228,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto bg-white shadow-xl sm:border-x sm:border-slate-200">
+    <div className="flex flex-col h-full max-w-3xl mx-auto bg-white shadow-xl sm:border-x sm:border-slate-200 relative">
       
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 bg-pink-50 border-b border-pink-100 shrink-0">
@@ -243,16 +243,27 @@ const App: React.FC = () => {
             <h1 className="font-bold text-slate-800 text-lg flex items-center gap-2">
               黑田光 (Hikari) <BookOpen size={16} className="text-pink-500" />
             </h1>
-            <p className="text-xs text-slate-500">中六 DSE 戰士 📚 | 溫緊書... 勿擾</p>
+            <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
+              中六 DSE 戰士 📚 | <span className="flex items-center gap-1 text-green-600 font-medium"><span className="w-2 h-2 rounded-full bg-green-500 inline-block animate-pulse"></span> Online</span>
+            </p>
           </div>
         </div>
-        <button 
-          onClick={handleClearHistory}
-          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
-          title="清除對話紀錄"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button 
+            onClick={() => setIsShareModalOpen(true)}
+            className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+            title="分享畀朋友"
+          >
+            <Share2 size={18} />
+          </button>
+          <button 
+            onClick={handleClearHistory}
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+            title="清除對話紀錄"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </header>
 
       {/* Error Banner */}
@@ -333,6 +344,56 @@ const App: React.FC = () => {
           </span>
         </div>
       </footer>
+
+      {/* Share Modal */}
+      {isShareModalOpen && (
+        <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+            <button 
+              onClick={() => setIsShareModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+            >
+              <X size={20} />
+            </button>
+            <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Share2 className="text-blue-500" /> 點樣分享畀朋友玩？
+            </h2>
+            
+            <div className="space-y-4 text-sm text-slate-600">
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-amber-800">
+                <p className="font-bold flex items-center gap-1 mb-1">
+                  <AlertCircle size={16} /> ⚠️ 安全警告
+                </p>
+                <p>呢個 App 目前直接連住你嘅 <strong>Gemini API Key</strong>。如果你直接將而家嘅網址 (URL) 或者原始碼公開，其他人可能會盜用你嘅 API Key，導致你被扣錢或爆 Quota！</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-slate-800 mb-1">✅ 安全分享方法 1：面對面玩</h3>
+                <p>最簡單安全嘅方法，就係直接攞你部手機或者電腦，開住個畫面畀朋友親自試玩。</p>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-slate-800 mb-1">✅ 安全分享方法 2：部署到 Vercel (適合進階用家)</h3>
+                <p>如果你想畀條 Link 朋友自己喺屋企玩，你需要將程式碼部署到 Vercel 或 Netlify 等平台，並將 API Key 設定為伺服器環境變數 (Environment Variables)。</p>
+                <p className="mt-1 text-xs text-slate-500">👉 詳細步驟請打開專案入面嘅 <code className="bg-slate-100 px-1 py-0.5 rounded">README.md</code> 檔案查看。</p>
+              </div>
+              
+              <div>
+                <h3 className="font-bold text-slate-800 mb-1">✅ 安全分享方法 3：接入 Facebook Messenger</h3>
+                <p>你可以建立一個 Node.js 後端伺服器，將阿光變成一個 Facebook 專頁嘅 Chatbot！</p>
+                <p className="mt-1 text-xs text-slate-500">👉 參考專案入面嘅 <code className="bg-slate-100 px-1 py-0.5 rounded">backend-example/server.js</code> 檔案。</p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setIsShareModalOpen(false)}
+              className="mt-6 w-full bg-slate-800 text-white py-2.5 rounded-xl font-medium hover:bg-slate-700 transition-colors"
+            >
+              明白！
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
