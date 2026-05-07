@@ -24,6 +24,26 @@
 
 ---
 
+# 💾 點樣令 Chatbot 記得先前嘅對話？ (持久化記憶)
+
+要令阿光記得你哋之前傾過咩，我哋需要將「對話紀錄 (History)」儲存起嚟，然後喺每次開新 Session 嘅時候餵返畀 Gemini。
+
+### 方案 A：網頁版 (Frontend) 嘅做法
+喺而家嘅 React 程式碼入面，我已經幫你加咗 **`localStorage`** 嘅功能。
+- **原理**：每次你同阿光傾偈，程式會將對話自動 save 喺你瀏覽器嘅 Local Storage 入面。
+- **效果**：就算你 F5 重新整理網頁，或者聽日再開返個網頁，阿光都會記得你哋之前講過咩。
+- **限制**：記憶只會留喺你而家用緊嘅呢部電腦/手機嘅瀏覽器入面。如果你換咗部手機，記憶就唔會同步過去。
+
+### 方案 B：Facebook Messenger / 後端 (Backend) 嘅做法
+如果你將阿光接入 Facebook Messenger，因為伺服器 (Server) 隨時會重啟，放喺 Memory (`new Map()`) 嘅紀錄會消失。你需要一個 **資料庫 (Database)**：
+1. **選擇 Database**：例如 MongoDB, Firebase Firestore, PostgreSQL, 或者 Redis。
+2. **儲存格式**：每次收到訊息，將 `{ role: 'user', parts: [{ text: '...' }] }` 同 `{ role: 'model', parts: [{ text: '...' }] }` 儲存入該用戶 (以 `sender_psid` 為 Key) 嘅 Array 入面。
+3. **讀取記憶**：當用戶 send 新訊息嚟，先從 Database 讀取佢嘅 History Array，然後用 `ai.chats.create({ history: savedHistory })` 初始化 Gemini，咁阿光就會記得之前嘅對話啦！
+
+*(你可以參考 `backend-example/server.js` 入面嘅註解了解更多)*
+
+---
+
 # 🤖 點樣將阿光接入 Facebook Messenger？
 
 **答案係：絕對可以！** 但係架構上會有好大改變。
